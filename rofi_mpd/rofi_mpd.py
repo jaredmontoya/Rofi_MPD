@@ -36,6 +36,22 @@ parser.add_argument('-r', '--args', nargs=argparse.REMAINDER, help='Command line
 args = parser.parse_args()
 
 
+def extract_list_values(list_result, tag):
+    """Extract values from MPD list() result.
+
+    Handles both old format (list of strings) and new format (list of dicts).
+    """
+    if not list_result:
+        return []
+
+    # Check if it's the new format (list of dicts)
+    if isinstance(list_result[0], dict):
+        return [item.get(tag, '') for item in list_result if tag in item]
+    else:
+        # Old format (list of strings)
+        return list_result
+
+
 def select(data, prompt, rofi, select=None):
     index, key = rofi.select(prompt, data, select=select)
 
@@ -181,25 +197,25 @@ def get_tracks(client, rofi):
     elif args.tracks:
         tracks = client.find('(title != "")')
     elif args.albums:
-        albums = client.list('album')
+        albums = extract_list_values(client.list('album'), 'album')
         album = get_album(client, rofi, albums)
 
         tracks = client.find('album', album)
 
     elif args.genres:
-        genres = client.list('genre')
+        genres = extract_list_values(client.list('genre'), 'genre')
         genre = select_genre(genres, rofi)
 
-        albums = client.list('album', '(genre == "%s")' % genre)
+        albums = extract_list_values(client.list('album', '(genre == "%s")' % genre), 'album')
         album = get_album(client, rofi, albums)
 
         tracks = client.find('genre', genre, 'album', album)
 
     else:
-        artists = client.list('artist')
+        artists = extract_list_values(client.list('artist'), 'artist')
         artist = select_artist(artists, rofi)
 
-        albums = client.list('album', '(artist == "%s")' % artist)
+        albums = extract_list_values(client.list('album', '(artist == "%s")' % artist), 'album')
         album = get_album(client, rofi, albums, artist)
 
         tracks = client.find('artist', artist, 'album', album)
