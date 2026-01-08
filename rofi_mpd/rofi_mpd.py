@@ -232,14 +232,20 @@ def run():
 
     if single_host_mode:
         if args.host:
-            host = dict(host=args.host, port=args.port or 6600)
+            if args.host.startswith('/') or args.host.startswith('./'):
+                host = dict(host=args.host, port=None)
+            else:
+                host = dict(host=args.host, port=args.port or 6600)
         else:
             host = config['hosts'][0]
     else:
         host = select_host(config['hosts'], rofi)
 
     client = MPDClient()
-    client.connect(host['host'], host['port'])
+    if host['port'] is None:
+        client.connect(host['host'])
+    else:
+        client.connect(host['host'], host['port'])
 
     tracks = get_tracks(client, rofi)
 
